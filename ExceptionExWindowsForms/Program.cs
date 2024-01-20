@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,30 +34,42 @@ namespace ExceptionExWindowsForms
                 }
                 else
                 {
-                    sb.Append(string.Format("集約エラー階層{0}",depth) +Environment.NewLine + ie.Message);
+                    sb.Append(string.Format("集約エラー階層{0}", depth) + Environment.NewLine + ie.Message + Environment.NewLine + ie.StackTrace.ToString());
                 }
             }
             return sb.ToString();
         }
-        private static void Application_ThreadException(object sender,ThreadExceptionEventArgs e)
+        private static bool IsApplicationExit(ThreadExceptionEventArgs e)
+        {
+            return (e.Exception is AccessViolationException);
+        }
+        private static void Application_ThreadException(object sender, ThreadExceptionEventArgs e)
         {
             try
             {
                 StringBuilder errorMessageSb = new StringBuilder();
-                AggregateException ae = e.Exception as AggregateException;
-                if (ae is AggregateException)
+                if (e.Exception is AggregateException)
                 {
-                    errorMessageSb.Append(PickErrorMessageFromAggregateException(ae).ToString());
+                    errorMessageSb.Append(PickErrorMessageFromAggregateException((AggregateException)e.Exception).ToString());
                 }
                 else
                 {
-                    errorMessageSb.Append(e.Exception.Message);
+                    errorMessageSb.Append(e.Exception.Message + Environment.NewLine + e.Exception.StackTrace.ToString());
                 }
-                MessageBox.Show(errorMessageSb.ToString(), string.Format("エラースレッド番号:{0}", Thread.CurrentThread.ManagedThreadId.ToString()));
+                MessageBox.Show(errorMessageSb.ToString(), string.Format("エラースレッド番号:{0}", Thread.CurrentThread.ManagedThreadId.ToString()));       
+
             }
             finally
             {
-                Application.Restart();
+                if  (IsApplicationExit(e))
+                {
+                    Application.Exit();
+                }
+                else
+                {
+                    Application.Restart();
+                }
+                
             }
         }
     }
