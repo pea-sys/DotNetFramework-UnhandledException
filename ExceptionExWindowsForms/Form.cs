@@ -24,16 +24,31 @@ namespace ExceptionExWindowsForms
         {
             ThrowOutOfRangeExceptionMethod();
         }
+        private void threadExceptionButton_Click(object sender, EventArgs e)
+        {
+            Task.Run(() => ThrowOutOfRangeExceptionMethod()).Wait();
+        }
 
+        private void accessViolationExceptionButton_Click(object sender, EventArgs e)
+        {
+            ThrowAccessViolationException();
+        }
         private void ThrowOutOfRangeExceptionMethod()
         {
             int[] myArray = new int[0];
             Console.WriteLine(myArray[myArray.Length]);
         }
-
-        private void threadExceptionButton_Click(object sender, EventArgs e)
+        // ref:https://stackoverflow.com/questions/41031308/system-accessviolationexception-for-unsafe-code
+        [DllImport("user32")]
+        private static extern int CallWindowProc(int lpPrevWndFunc, int hWnd, int Msg, int wParam, int lParam);
+        private unsafe void ThrowAccessViolationException()
         {
-           Task.Run(() => ThrowOutOfRangeExceptionMethod()).Wait();
+            byte[] b = { 0x8B };
+            fixed (byte* bb = &b[0])
+            {
+                int bi = (int)bb;
+                CallWindowProc(bi,0, 0, 0, 0);
+            }
         }
     }
 }
